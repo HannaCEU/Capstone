@@ -13,7 +13,7 @@ class(data_subset$Sex)
 unique(data_subset$Year)
 
 
-# Filter for the OSCE specified countries and years
+# Filter for the region specified countries and years
 countries <- c("Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Canada", "Croatia", "Cyprus", "Czechia", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Holy See", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan", "Kyrgyzstan", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Republic of Moldova", "Monaco", "Mongolia", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russian Federation", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Tajikistan", "Türkiye", "Turkmenistan", "Ukraine", "United Kingdom of Great Britain and Northern Ireland", "United States of America", "Uzbekistan")
 years <- c(2017, 2018, 2019, 2020, 2021)
 data_filtered <- filter(data_subset, Country %in% countries, Year %in% years)
