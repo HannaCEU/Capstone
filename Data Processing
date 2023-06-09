@@ -1,0 +1,171 @@
+# Read the Excel file
+data <- read_excel("data_glotip_1.xlsx", skip = 2)
+
+# Select the relevant columns
+data_subset <- select(data, Country, Indicator, Dimension, Category, Sex, Age, Year, txtVALUE)
+
+#Check class of columns and any mistakes, especially Italy(!)
+class(data_subset$txtVALUE)
+class(data_subset$Year)
+class(data_subset$Indicator)
+class(data_subset$Age)
+class(data_subset$Sex)
+unique(data_subset$Year)
+
+
+# Filter for the OSCE specified countries and years
+countries <- c("Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Canada", "Croatia", "Cyprus", "Czechia", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Holy See", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan", "Kyrgyzstan", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Republic of Moldova", "Monaco", "Mongolia", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russian Federation", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Tajikistan", "Türkiye", "Turkmenistan", "Ukraine", "United Kingdom of Great Britain and Northern Ireland", "United States of America", "Uzbekistan")
+years <- c(2017, 2018, 2019, 2020, 2021)
+data_filtered <- filter(data_subset, Country %in% countries, Year %in% years)
+
+#explore the dataframe
+str(data_filtered)
+unique(data_filtered$Country)
+unique(data_filtered$Indicator)
+unique(data_filtered$Dimension)
+unique(data_filtered$Sex)
+
+
+sum(data_filtered$Indicator == "Detected trafficking victims")
+
+#Factor columns on indicator, dimension and sex
+
+data_filtered[, c("Country", "Indicator", "Dimension", "Sex")] <- lapply(data_filtered[, c("Country", "Indicator", "Dimension", "Sex")], as.factor)
+
+#Check class
+class(data_filtered$Country)
+
+# Create exception for the countries which do not submit reports and neither have cases according to the field experts
+exception_condition <- data_filtered$Country %in% c("Andorra", "Iceland", "Holy See", "Liechtenstein", "Monaco", "San Marino")
+
+lines_with_commas <- which(grepl(",", data_filtered$txtVALUE))
+print(lines_with_commas)
+
+# Replace commas on the identified lines
+data_filtered$txtVALUE[lines_with_commas] <- gsub(",", "", data_filtered$txtVALUE[lines_with_commas])
+
+#check again 
+lines_with_commas <- which(grepl(",", data_filtered$txtVALUE))
+print(lines_with_commas)
+
+# Replace values with exceptions as 0 and the rest as 2
+data_filtered$txtVALUE[data_filtered$txtVALUE == "<5" & !exception_condition] <- 2
+data_filtered$txtVALUE[exception_condition] <- 0
+
+# Convert the column to numeric
+data_filtered$Count <- as.numeric(data_filtered$txtVALUE)
+
+# Rename the column and drop txt
+names(data_filtered)[names(data_filtered) == "count"] <- "count"
+data_filtered$txtVALUE <- NULL
+
+#SECTION 2
+
+#Write out data with count of victims, prosecutions and convictions
+data_total <- filter(data_filtered, data_filtered$Dimension == "Total", data_filtered$Age == "Total", data_filtered$Sex == "Total")
+
+# Dropping observations with specific indicator on persons brought into formal contact
+#After consultation with the domain expert, decided to drop observations on "Persons brought into formal contact" and "Offences of trafficking in persons" as irrelevant for the analysis.
+#But then in data analysis discovered that some countries do not report on prosecutions/convictions, but do report on offences, e.g. Italy, Portugal
+data_total <- subset(data_total, !(Indicator %in% c("Persons brought into formal contact")))
+
+data_total <- data_total[, c("Country", "Indicator", "Year", "Count")]
+
+#write out the abridged cleaned data in the long format
+write.csv(data_total, "file_1.csv", row.names = FALSE)
+
+#write out the disintegrated all clean data in the long format
+write.csv(data_filtered, "file_extended_1.csv", row.names = FALSE)
+
+class(data_filtered$Dimension)
+
+population <- read.csv("population.csv")
+names(population)[1] <- "Country"
+population$Country <- factor(population[, 1], levels = population[, 1])
+class(population$Country)
+
+# Remove "X" from the beginning of each subsequent column title
+names(population)[-1] <- sub("^X", "", names(population)[-1])
+
+population_filtered <- population[, c("Country", "2017", "2018", "2019", "2020", "2021")]
+
+# Reshape the data frame to long format
+population_long <- population_filtered %>%
+  pivot_longer(cols = starts_with("20"), names_to = "Year", values_to = "Population")
+
+# Remove everything after "." in Population column
+population_long$Population <- str_replace(population_long$Population, "\\..*", "")
+
+# Remove all commas in Population column
+population_long$Population <- str_replace_all(population_long$Population, ",", "")
+
+# Remove all commas in Population column
+population_long$Population <- str_replace_all(population_long$Population, ",", "")
+
+population_long$Population <- as.numeric(population_long$Population)
+
+#Comparing countries 
+# Compare the list of countries with population_long$Country
+countries_not_in_population <- countries[!(countries %in% population_long$Country)]
+
+# Count the number of countries not in population_long$Country
+num_countries_not_in_population <- sum(!(countries %in% population_long$Country))
+
+# Print the countries not in population_long$Country and the count
+print(countries_not_in_population)
+print(num_countries_not_in_population)
+
+# List of countries with updated names
+my_countries <- c("Kyrgyzstan", "Republic of Moldova", "Slovakia", "Türkiye", "United Kingdom of Great Britain and Northern Ireland", "United States of America")
+
+# Update country names to match population_long$Country
+updated_countries <- ifelse(my_countries == "Kyrgyzstan", "Kyrgyz Republic",
+                            ifelse(my_countries == "Republic of Moldova", "Moldova",
+                                   ifelse(my_countries == "Slovakia", "Slovak Republic",
+                                          ifelse(my_countries == "Türkiye", "Turkiye",
+                                                 ifelse(my_countries == "United Kingdom of Great Britain and Northern Ireland", "United Kingdom",
+                                                        ifelse(my_countries == "United States of America", "United States",
+                                                               my_countries))))))
+
+# Compare the updated list of countries with population_long$Country
+countries_not_in_population <- updated_countries[!(updated_countries %in% population_long$Country)]
+
+# Count the number of countries not in population_long$Country
+num_countries_not_in_population <- sum(!(updated_countries %in% population_long$Country))
+
+# Print the countries not in population_long$Country and the count
+print(countries_not_in_population)
+print(num_countries_not_in_population)
+
+population_long$Year<- as.numeric(population_long$Year)
+
+# Join data_total with population_long based on the Country column
+by_mln_population <- left_join(data_total, population_long, by = c("Country", "Year"))
+
+#To normalise the data, I create the "count_by_mln" column
+by_mln_population$count_by_mln <- (by_mln_population$Count / by_mln_population$Population) * 1e6
+
+# Remove numbers after decimal point in count_by_mln column
+by_mln_population$count_by_mln <- floor(by_mln_population$count_by_mln)
+
+
+# Filter the dataframe by Year = 2020
+filtered_df <- by_mln_population[by_mln_population$Year == 2020 & by_mln_population$Indicator == "Detected trafficking victims", ]
+
+# Sort the filtered dataframe by count_by_mln column in descending order
+sorted_df <- filtered_df[order(filtered_df$count_by_mln, decreasing = TRUE), ]
+
+# Select the top 5 rows with the highest number of "Detected trafficking victims" by mln population in 2021 count_by_mln values
+top_5_rows <- head(sorted_df, 5)
+
+#Identify the highest number of "Detected trafficking victims" by count
+df_total <- data_total[data_total$Year == 2020 & data_total$Indicator == "Detected trafficking victims", ]
+
+
+# Sort the filtered dataframe by count_by_mln column in descending order
+df_total_sorted <- df_total[order(df_total$Count, decreasing = TRUE), ]
+
+# Select the top 5 rows with the highest number of "Detected trafficking victims" by mln population in 2021 count_by_mln values
+top_total_5_rows <- head(df_total_sorted, 5)
+
+write.csv(by_mln_population, "by_mln_population_1.csv", row.names = FALSE)
