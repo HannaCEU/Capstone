@@ -12,8 +12,7 @@ install.packages("arsenal")
 
 ## Section 1. Download raw data
 # Read the Excel file
-setwd("C:/Users/grazh/Documents/CEU/Business analytics MSc/capstone/datasets")
-data <- read_excel("data_glotip_1.xlsx", skip = 2)
+Use the relevant path or direct download from: https://dataunodc.un.org/sites/dataunodc.un.org/files/data_glotip.xlsx
 
 ## Section 2. Data Cleaning and Transformation
 # Select the relevant columns
@@ -93,3 +92,5 @@ write.csv(data_total, "file_2.csv", row.names = FALSE)
 
 # Write out all clean disintegrated data in the long format
 write.csv(data_subset, "file_extended_2.csv", row.names = FALSE)
+
+
