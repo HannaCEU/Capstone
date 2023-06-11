@@ -136,3 +136,35 @@ top_total_5_rows <- head(df_total, 5)
 
 #write out the csv file for the later use in Tableau
 write.csv(by_mln_population, "by_mln_population_2.csv", row.names = FALSE)
+
+## Section 4. Descriptive Statistics on data total in Year 2020
+
+#Filter for the year and look into the most recently available data
+wide_data <- data_total %>%
+  filter(Year == 2020) %>%
+  pivot_wider(id_cols = Country, names_from = Indicator, values_from = Count)
+
+sum(is.na(wide_data$"Persons prosecuted"))
+
+wide_data <- wide_data %>%
+  rename(
+    victims = "Detected trafficking victims",
+    prosecutions = "Persons prosecuted",
+    convictions = "Persons convicted",
+    offences = "Offences of trafficking in persons"
+  )
+
+# I know that apart from victims there will be NAs due to absence of reporting, so I have to account for this in my code.
+P95 <- function(x){quantile(x,0.95,na.rm=T)}
+P05 <- function(x){quantile(x,0.05,na.rm=T)}
+
+summary_stats <- datasummary( (`Detected trafficking victims` = floor(victims )) + 
+               (`Persons prosecuted` = floor(prosecutions)) +
+               (`Persons convicted` = floor(convictions)) +
+               (`Offences of trafficking in persons` = floor(offences)) ~
+               Mean + Median + SD + Min + Max + P05 + P95, 
+               data = wide_data ,
+               title = "Descriptive statistics")
+
+print(summary_stats)
+
